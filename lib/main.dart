@@ -1,6 +1,11 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+
+import 'package:pytorch_mobile/pytorch_mobile.dart';
+import 'package:pytorch_mobile/model.dart';
 
 void main() {
   runApp(const MaterialApp(
@@ -16,8 +21,27 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-
+  Model? _imageModel;
+  String? _imagePrediction;
   File? imageFile;
+
+  String? label;
+
+  @override
+  void initState() {
+    super.initState();
+    loadModel();
+  }
+
+  //load your model
+  Future loadModel() async {
+    String pathImageModel = "assets/models/resnet18.pt";
+    try {
+      _imageModel = await PyTorchMobile.loadModel(pathImageModel);
+    } on PlatformException {
+      print("only supported for android and ios so far");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +85,10 @@ class _HomeState extends State<Home> {
             const SizedBox(
               height: 20,
             ),
+            Text('Label: $label', style: const TextStyle(fontSize: 26),),
+            const SizedBox(
+              height: 20,
+            ),
             Row(
               children: [
                 Expanded(
@@ -98,5 +126,13 @@ class _HomeState extends State<Home> {
         imageFile = File(file!.path);
       });
     }
+
+    _imagePrediction = await _imageModel!.getImagePrediction(
+        File(imageFile!.path), 224, 224, "assets/labels/labels.csv");
+    log('LABEL LABEL LABEL: $_imagePrediction');
+
+    setState(() {
+      label = _imagePrediction;
+    });
   }
 }
